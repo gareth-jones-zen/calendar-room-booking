@@ -1,0 +1,93 @@
+# calendar-room-booking: an example settings file (made-up people and rooms). See the README.
+
+base = "base-config.toml"        # optional: shared settings (sign-in, time zone, [leave], [review], [paths])
+# login_hint = "alex.example@example.com"
+# tenant = "organizations"
+# time_zone = "GMT Standard Time"
+log_file = "%LOCALAPPDATA%/calendar-room-booking/calendar-room-booking.log"
+state_file = "%LOCALAPPDATA%/calendar-room-booking/state.json"   # the send-once record: keep it outside any repo
+
+enabled = true
+mode = "ask"                     # ask: book nothing, raise review items; act: book the "yes" meetings
+days_ahead = 14                  # today and this many days on
+max_minutes = 240                # longer meetings never get a room
+join_gap_minutes = 10            # meetings this close together share one room where one is free for all
+max_bookings = 10                # a run that would book more stops and books nothing
+max_attempts = 2                 # rooms asked for one meeting before it's raised as "no room"
+answer_wait_minutes = 10         # a room's silence after this long counts as a decline
+room_category = "Room"           # an Outlook category on a meeting: yes, whatever the rules say
+no_room_category = "No room"     # ... no
+# responses = ["accepted", "tentativelyAccepted"]   # your answers that make a meeting a candidate (organising always does)
+# forward_comment = ""           # the note on an invitation forwarded to a room
+
+default_rooms = ["Room 4.2"]     # tried first when a rule names no rooms of its own
+room_floors = ["4", "3"]         # then rooms on these floors, in this order; then the smallest that fits
+
+[[rooms]]
+name = "Room 4.1"
+address = "room4.1@example.com"
+floor = "4"
+capacity = 8
+
+[[rooms]]
+name = "Room 4.2"
+address = "room4.2@example.com"
+floor = "4"
+
+[[rooms]]
+name = "Booth 4.8"
+address = "booth4.8@example.com"
+floor = "4"
+capacity = 2
+
+[[rooms]]
+name = "Room 3.1"
+address = "room3.1@example.com"
+floor = "3"
+
+# Never a candidate: your own blocks and reminders (anything with no one else invited is skipped anyway).
+[[skip]]
+subject = '^\s*(lunch|travel|focus|reminder|hold)\b'
+why = "your own blocks and reminders"
+
+# First match decides. Tests (all optional): subject (a pattern), organiser ("me", an address or a name, or a list),
+# one_to_one, min_attendees, max_attendees, response, series (a series master id), category, with (addresses: any of
+# them at the meeting). room = "yes", "no" or "ask"; rooms = [...] to try first for this rule; why for plan and the log.
+[[rules]]
+one_to_one = true
+organiser = ["me", "sam.manager@example.com"]   # your own 1:1s and your manager's with you
+room = "yes"
+rooms = ["Booth 4.8"]
+why = "1:1s"
+
+[[rules]]
+min_attendees = 20
+room = "no"
+why = "big calls"
+
+[[rules]]
+with = ["jo.report@example.com", "kim.report@example.com"]
+min_attendees = 3
+room = "yes"
+why = "my team's meetings"
+
+[[rules]]
+organiser = "me"
+room = "yes"
+why = "calls I chair"
+
+[[rules]]
+room = "ask"
+why = "everything else"
+
+[leave]                          # what counts as a day off: background-tools-lib's shared [leave] keys (or the base's)
+
+[review]                         # where ask items go (background-tools-lib's ReviewQueue)
+file = "%LOCALAPPDATA%/my-tools/review.json"
+source = "calendar-room-booking"
+
+[schedule]                       # when the task runs (background-tools-lib's shared [schedule] keys)
+every_minutes = 15
+hours = "07:00-19:00"
+days = "Mon-Fri"
+at_logon = true

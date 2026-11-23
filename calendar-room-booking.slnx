@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="src/RoomBooking/RoomBooking.csproj" />
+  <Project Path="src/RoomBooking.Console/RoomBooking.Console.csproj" />
+  <Project Path="src/RoomBooking.Background/RoomBooking.Background.csproj" />
+
+  <Project Path="tests/RoomBooking.Tests/RoomBooking.Tests.csproj" />
+</Solution>

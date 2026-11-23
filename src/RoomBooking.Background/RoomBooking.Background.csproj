@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>calendar-room-booking-background</AssemblyName>
+    <RootNamespace>RoomBooking</RootNamespace>
+    <PublishAot>true</PublishAot>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RoomBooking\RoomBooking.csproj" />
+  </ItemGroup>
+</Project>
