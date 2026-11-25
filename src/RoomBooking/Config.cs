@@ -93,7 +93,7 @@ public sealed class Config
         "login_hint", "tenant", "msal_cache", "log_file", "state_file", "time_zone", "enabled", "mode", "days_ahead",
         "max_minutes", "join_gap_minutes", "max_bookings", "max_attempts", "answer_wait_minutes", "notify",
         "room_category", "no_room_category", "responses", "forward_comment", "default_rooms", "room_floors", "rooms",
-        "skip", "rules", "leave", "schedule", "review",
+        "skip", "rules", "leave", "schedule", "review", "journal_file",
     ];
 
     private static readonly string[] RuleKeys =
@@ -115,6 +115,9 @@ public sealed class Config
     public string? MsalCache { get; init; }
     public required string LogFile { get; init; }
     public required string StateFile { get; init; }
+    /// <summary>The shared activity journal (0.2.0; journal_file, usually from the base): one line for each room asked for
+    /// and each meeting skipped. Null writes none.</summary>
+    public string? JournalFile { get; init; }
     public required TimeZoneInfo TimeZone { get; init; }
     public bool Enabled { get; init; } = true;
     /// <summary>"ask": no writes, the meetings it would book go to the review queue; "act": it books them.</summary>
@@ -351,6 +354,7 @@ public sealed class Config
             Tenant = Text(raw, "tenant", "tenant") ?? "organizations",
             MsalCache = Text(raw, "msal_cache", "msal_cache") is { } cache ? PathSetting(cache) : null,
             LogFile = Text(raw, "log_file", "log_file") is { } log ? PathSetting(log) : PyPath.Pure(System.IO.Path.Combine(Local(env), "calendar-room-booking.log")),
+            JournalFile = Text(raw, "journal_file", "journal_file") is { } journal ? PathSetting(journal) : null,
             StateFile = Text(raw, "state_file", "state_file") is { } state ? PathSetting(state) : PyPath.Pure(System.IO.Path.Combine(Local(env), "state.json")),
             TimeZone = zone,
             Enabled = Flag("enabled", true),

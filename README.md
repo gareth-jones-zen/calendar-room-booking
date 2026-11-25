@@ -152,6 +152,34 @@ succeeds.
   refuses the length or how far ahead, declines; the next room is tried.
 - **Room sizes** come only from the settings (`capacity`); a room without one counts as fitting.
 
+## The shared activity journal (0.2.0)
+
+With **`journal_file`** set (top level, or in the base file so every tool shares it: by convention
+`journal_file = "%EA_LOCAL%/journal.jsonl"`), each room it asks for and each meeting you skip is also **one JSON line
+in a journal shared by the tools**, written through background-tools-lib's
+[ActivityJournal](https://github.com/gareth-jones-zen/background-tools-lib#activityjournal), for a "while you were
+away" view. Without it, nothing is written (the default).
+
+```json
+{"id":"4d7be2091fa3","when":"2026-11-23T09:00:12.004+00:00","tool":"calendar-room-booking","what":"book","by":"auto","subject":"Weekly 1-2-1 - Jo, Thu 26 Nov 10:00","rule":"rule 1 (1:1s)","why":"Booth 4.8: added to your meeting (everyone on it got an update); it accepted","item":"AAMkAD...","sensitivity":"private"}
+```
+
+| `what` | When | `undo` |
+|---|---|---|
+| `book` | a run in act mode (`by` `auto`, `rule` the rule that chose it), `book --yes` (`by` `hand`, `rule` `by hand`) | none: no command gives a room back (below) |
+| `skip` | `skip` (`by` `hand`) | `calendar-room-booking book <event id>` (a preview until `--yes`, which books it and clears the skip) |
+
+- **Only what was sent**: never `plan`, a `book` preview, ask mode's review items, or a request Microsoft refused (a
+  4xx: nothing was sent). A request whose answer was lost (it may have gone) has `"outcome": "unconfirmed"`.
+- `subject` is the meeting's subject and start; `why` is the room, how it was asked (added to your meeting, or the
+  invitation forwarded to the room) and its answer as far as it was read (`it accepted`, `it declined`, `no answer
+  yet`); `item` is the meeting's event id. A room tried after another declined is its own line.
+- **Every line is `"sensitivity": "private"`**: a meeting's subject can name a person or a topic, so a screen shown to
+  others hides it.
+- **No undo for a booking**: rooms are never given back (Known limitations, above). On your own meeting, take the room
+  off in Outlook; a forwarded booking can only be cancelled by the organiser or the room's owner.
+- **Writing it never fails the run**: a problem is logged (`journal: couldn't write to ...`) and the run carries on.
+
 ## Commands
 
 ```
@@ -187,6 +215,7 @@ msal_cache = "..."                # optional: another tool's token cache, to sha
 time_zone = "GMT Standard Time"
 log_file = "..."                  # default %LOCALAPPDATA%\calendar-room-booking\calendar-room-booking.log
 state_file = "..."                # the send-once record; default %LOCALAPPDATA%\calendar-room-booking\state.json
+journal_file = "..."              # optional: the shared activity journal (0.2.0; usually from the base file)
 enabled = true
 mode = "ask"                      # or "act"
 days_ahead = 14

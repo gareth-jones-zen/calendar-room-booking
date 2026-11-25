@@ -35,9 +35,11 @@ public static class Booker
     /// <summary>Asks <paramref name="room"/> for <paramref name="m"/>: added to the meeting if you organise it,
     /// forwarded to the room if not. <b>Never twice:</b> the attempt is recorded as "sending" in the state file before
     /// the write and "done" after, so an answer lost in between leaves "sending", and nothing for that meeting at that
-    /// time is ever sent again. Then the room's answer is read back a few times, a few seconds apart.</summary>
+    /// time is ever sent again. Then the room's answer is read back a few times, a few seconds apart. What was sent goes
+    /// in the shared activity journal (<see cref="Activity"/>), <paramref name="by"/> auto or hand, with the rule that
+    /// chose it.</summary>
     public static (Outcome Outcome, string Message) Book(Config config, ICalendar calendar, State state, Meeting m, Room room,
-        Action<string> log, Action<TimeSpan> sleep, DateTime now)
+        Action<string> log, Action<TimeSpan> sleep, DateTime now, string by, string? rule)
     {
         var before = state.Attempts(m.Key);
         if (before.FirstOrDefault(a => a.State == "sending") is { } lost)
@@ -77,6 +79,7 @@ public static class Booker
             // A 5xx, a timeout or a dropped connection after sending (GraphDeliveryUnknownException), or anything else
             // once the request may have left: it may have gone, so it stays "sending" and is never sent again.
             log($"couldn't confirm: {what} may have gone ({error.GetType().Name}: {Head(error.Message)}); never sent again");
+            Activity.Booked(config, now, log, m, room, by, rule, Outcome.MayHaveGone);
             return (Outcome.MayHaveGone, $"The answer was lost ({Head(error.Message)}): it may have gone. Check the room in Outlook; it's never sent again from here.");
         }
         attempt["state"] = "done";
@@ -100,12 +103,14 @@ public static class Booker
                 log($"couldn't read your copy back: {Head(error.Message)}");
             }
         log($"room's answer: {what}: {answer ?? "none yet"}");
-        return answer switch
+        var result = answer switch
         {
             "accepted" => (Outcome.Accepted, $"{room.Name} accepted: it's booked."),
             "declined" => (Outcome.Declined, $"{room.Name} declined."),
             _ => (Outcome.NoAnswer, $"{room.Name} hasn't answered yet: the next run checks its schedule."),
         };
+        Activity.Booked(config, now, log, m, room, by, rule, result.Item1);
+        return result;
     }
 
     /// <summary>The room's answer, read back up to <see cref="Reads"/> times: "accepted" when its schedule shows the

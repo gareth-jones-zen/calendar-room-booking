@@ -206,13 +206,14 @@ public static class Cli
         var outcomes = new Dictionary<Outcome, int>();
         foreach (var c in book.OrderBy(c => c.Meeting.Start))
         {
-            var (outcome, message) = Booker.Book(config, calendar, state, c.Meeting, c.Choice!, log, host.Sleep, host.Now());
+            var (outcome, message) = Booker.Book(config, calendar, state, c.Meeting, c.Choice!, log, host.Sleep, host.Now(), ActivityJournal.By.Auto, c.WantWhy);
             if (outcome == Outcome.Declined && state.Attempts(c.Meeting.Key).Count(a => a.State == "done") < config.MaxAttempts
                 && c.Order.FirstOrDefault(o => o.Room != c.Choice && !state.Attempts(c.Meeting.Key).Any(a => string.Equals(a.Room, o.Room.Address, StringComparison.OrdinalIgnoreCase)))
                     is { } next && NextFree(calendar, next.Room, c.Meeting))
             {
                 log($"{c.Choice!.Name} declined {c.Meeting.Start:dd/MM HH:mm} \"{c.Meeting.Subject}\": trying {next.Room.Name}");
-                (outcome, message) = Booker.Book(config, calendar, state, c.Meeting, next.Room, log, host.Sleep, host.Now());
+                (outcome, message) = Booker.Book(config, calendar, state, c.Meeting, next.Room, log, host.Sleep, host.Now(), ActivityJournal.By.Auto,
+                    $"{c.WantWhy}; {c.Choice!.Name} declined");
             }
             outcomes[outcome] = outcomes.GetValueOrDefault(outcome) + 1;
             host.Out.WriteLine($"  {c.Meeting.Start:ddd dd/MM HH:mm} {c.Meeting.Subject}: {message}");
@@ -353,7 +354,7 @@ public static class Cli
         }
         var log = Logger.Create(config.LogFile, null, clock: host.Now);
         state.Skipped.Remove(m.Key);
-        var (outcome, message) = Booker.Book(config, calendar, state, m, room, log, host.Sleep, host.Now());
+        var (outcome, message) = Booker.Book(config, calendar, state, m, room, log, host.Sleep, host.Now(), ActivityJournal.By.Hand, null);
         state.Save(config.StateFile);
         host.Out.WriteLine(message);
         return outcome is Outcome.Accepted or Outcome.NoAnswer ? 0 : 1;
@@ -364,7 +365,9 @@ public static class Cli
         var (m, _, _, _, state) = Find(config, host, options.Args[0]);
         state.Skip(m, host.Now());
         state.Save(config.StateFile);
-        Logger.Create(config.LogFile, null, clock: host.Now)($"skip: {m.Start:dd/MM HH:mm} \"{m.Subject}\"");
+        var log = Logger.Create(config.LogFile, null, clock: host.Now);
+        log($"skip: {m.Start:dd/MM HH:mm} \"{m.Subject}\"");
+        Activity.Skipped(config, host.Now(), log, m);
         host.Out.WriteLine($"No room for {m.Start:ddd dd MMM HH:mm} {m.Subject} (at that time). `book` it to change your mind.");
         return 0;
     }
